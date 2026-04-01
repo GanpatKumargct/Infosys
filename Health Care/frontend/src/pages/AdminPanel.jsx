@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllUsers, getDoctorsList, createDoctor, updateDoctor, deleteDoctor } from '../services/api';
+import { getAllUsers, getDoctorsList, createDoctor, updateDoctor, deleteDoctor, getAllPatients, registerPatient, updatePatient, deletePatient } from '../services/api';
 import { Users, Shield, UserCog, Mail, Calendar, ArrowLeft, Search, Filter, Plus, Trash2, Edit } from 'lucide-react';
 
 const AdminPanel = () => {
@@ -19,7 +19,8 @@ const AdminPanel = () => {
         fullName: '',
         email: '',
         password: '',
-        specialization: ''
+        specialization: '',
+        role: 'DOCTOR' // Added to track which role is being created/edited
     });
 
     useEffect(() => {
@@ -36,9 +37,10 @@ const AdminPanel = () => {
         setLoading(true);
         try {
             if (userRole === 'RECEPTIONIST') {
-                const res = await getDoctorsList();
-                setUsers(res.data);
-                setFilterRole('DOCTOR');
+                const docs = await getDoctorsList();
+                const pats = await getAllPatients();
+                setUsers([...docs.data, ...pats.data]);
+                setFilterRole('ALL');
             } else {
                 const res = await getAllUsers();
                 setUsers(res.data);
@@ -51,18 +53,19 @@ const AdminPanel = () => {
         }
     };
 
-    const handleOpenModal = (doctor = null) => {
-        if (doctor) {
-            setEditingDoctor(doctor);
+    const handleOpenModal = (user = null, newRole = 'DOCTOR') => {
+        if (user) {
+            setEditingDoctor(user);
             setFormData({
-                fullName: doctor.fullName,
-                email: doctor.email,
-                password: '', // Don't show password
-                specialization: doctor.specialization || ''
+                fullName: user.fullName,
+                email: user.email,
+                password: '',
+                specialization: user.specialization || '',
+                role: user.role
             });
         } else {
             setEditingDoctor(null);
-            setFormData({ fullName: '', email: '', password: '', specialization: '' });
+            setFormData({ fullName: '', email: '', password: '', specialization: '', role: newRole });
         }
         setShowModal(true);
     };
@@ -71,27 +74,39 @@ const AdminPanel = () => {
         e.preventDefault();
         try {
             if (editingDoctor) {
-                await updateDoctor(editingDoctor.id, formData);
-                setMessage({ type: 'success', text: 'Doctor updated successfully!' });
+                if (formData.role === 'PATIENT') {
+                    await updatePatient(editingDoctor.id, formData);
+                } else {
+                    await updateDoctor(editingDoctor.id, formData);
+                }
+                setMessage({ type: 'success', text: `${formData.role} updated successfully!` });
             } else {
-                await createDoctor(formData);
-                setMessage({ type: 'success', text: 'Doctor created successfully!' });
+                if (formData.role === 'PATIENT') {
+                    await registerPatient(formData);
+                } else {
+                    await createDoctor(formData);
+                }
+                setMessage({ type: 'success', text: `${formData.role} created successfully!` });
             }
             setShowModal(false);
             fetchData(role);
         } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to save doctor details.' });
+            setMessage({ type: 'error', text: 'Failed to save details. Check inputs.' });
         }
     };
 
-    const handleDeleteDoctor = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+    const handleDeleteUser = async (id, userRole) => {
+        if (!window.confirm(`Are you sure you want to delete this ${userRole.toLowerCase()}?`)) return;
         try {
-            await deleteDoctor(id);
-            setMessage({ type: 'success', text: 'Doctor removed successfully!' });
+            if (userRole === 'PATIENT') {
+                await deletePatient(id);
+            } else {
+                await deleteDoctor(id);
+            }
+            setMessage({ type: 'success', text: `${userRole} removed successfully!` });
             fetchData(role);
         } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to delete doctor.' });
+            setMessage({ type: 'error', text: `Failed to delete ${userRole.toLowerCase()}.` });
         }
     };
 
@@ -122,9 +137,14 @@ const AdminPanel = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     {role === 'RECEPTIONIST' && (
-                        <button onClick={() => handleOpenModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Plus size={18} /> Add Doctor
-                        </button>
+                        <>
+                            <button onClick={() => handleOpenModal(null, 'DOCTOR')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Plus size={18} /> Add Doctor
+                            </button>
+                            <button onClick={() => handleOpenModal(null, 'PATIENT')} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', color: 'var(--primary)', borderColor: 'var(--primary)' }}>
+                                <Plus size={18} /> Add Patient
+                            </button>
+                        </>
                     )}
                     <button onClick={() => navigate('/dashboard')} className="btn btn-outline">
                         <ArrowLeft size={18} style={{ marginRight: '0.5rem' }} /> Dashboard
@@ -155,29 +175,46 @@ const AdminPanel = () => {
                             style={{ paddingLeft: '2.5rem' }}
                         />
                     </div>
-                    {role === 'ADMIN' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Filter size={18} color="var(--text-muted)" />
-                            <select 
-                                value={filterRole} 
-                                onChange={(e) => setFilterRole(e.target.value)}
-                                style={{ width: '180px' }}
-                            >
-                                <option value="ALL">All Roles</option>
-                                <option value="PATIENT">Patients</option>
-                                <option value="DOCTOR">Doctors</option>
-                                <option value="RECEPTIONIST">Receptionists</option>
-                                <option value="ADMIN">Admins</option>
-                            </select>
-                        </div>
-                    )}
                     <div className="stats" style={{ display: 'flex', gap: '1rem', marginLeft: 'auto' }}>
                         <div style={{ padding: '0.5rem 1rem', background: 'var(--secondary)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>{role === 'ADMIN' ? 'TOTAL USERS' : 'TOTAL DOCTORS'}</div>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{users.length}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold' }}>TOTAL RESULTS</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{filteredUsers.length}</div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                <button 
+                    onClick={() => setFilterRole('ALL')} 
+                    className={`btn ${filterRole === 'ALL' ? 'btn-primary' : 'btn-text'}`}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '4px 4px 0 0', marginBottom: '-1px' }}
+                >
+                    All Users
+                </button>
+                <button 
+                    onClick={() => setFilterRole('DOCTOR')} 
+                    className={`btn ${filterRole === 'DOCTOR' ? 'btn-primary' : 'btn-text'}`}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '4px 4px 0 0', marginBottom: '-1px' }}
+                >
+                    Doctors
+                </button>
+                <button 
+                    onClick={() => setFilterRole('PATIENT')} 
+                    className={`btn ${filterRole === 'PATIENT' ? 'btn-primary' : 'btn-text'}`}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '4px 4px 0 0', marginBottom: '-1px' }}
+                >
+                    Patients
+                </button>
+                {role === 'ADMIN' && (
+                    <button 
+                        onClick={() => setFilterRole('RECEPTIONIST')} 
+                        className={`btn ${filterRole === 'RECEPTIONIST' ? 'btn-primary' : 'btn-text'}`}
+                        style={{ padding: '0.5rem 1rem', borderRadius: '4px 4px 0 0', marginBottom: '-1px' }}
+                    >
+                        Receptionists
+                    </button>
+                )}
             </div>
 
             <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -248,7 +285,7 @@ const AdminPanel = () => {
                                         </button>
                                         {role === 'RECEPTIONIST' && (
                                             <button 
-                                                onClick={() => handleDeleteDoctor(user.id)}
+                                                onClick={() => handleDeleteUser(user.id, user.role)}
                                                 className="btn btn-outline" 
                                                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', color: '#e53e3e', borderColor: '#e53e3e' }}
                                             >
@@ -263,14 +300,15 @@ const AdminPanel = () => {
                 </table>
             </div>
 
-            {/* Modal for Add/Edit Doctor */}
             {showModal && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
                 }}>
                     <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
-                        <h2 style={{ marginBottom: '1.5rem' }}>{editingDoctor ? 'Edit Doctor' : 'Register New Doctor'}</h2>
+                        <h2 style={{ marginBottom: '1.5rem', textTransform: 'capitalize' }}>
+                            {editingDoctor ? `Edit ${formData.role.toLowerCase()}` : `Register New ${formData.role.toLowerCase()}`}
+                        </h2>
                         <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
                                 <label>Full Name</label>
@@ -301,15 +339,17 @@ const AdminPanel = () => {
                                     />
                                 </div>
                             )}
-                            <div>
-                                <label>Specialization</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="e.g. Cardiologist" 
-                                    value={formData.specialization} 
-                                    onChange={e => setFormData({...formData, specialization: e.target.value})}
-                                />
-                            </div>
+                            {formData.role === 'DOCTOR' && (
+                                <div>
+                                    <label>Specialization</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. Cardiologist" 
+                                        value={formData.specialization} 
+                                        onChange={e => setFormData({...formData, specialization: e.target.value})}
+                                    />
+                                </div>
+                            )}
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline" style={{ flex: 1 }}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Changes</button>

@@ -147,6 +147,16 @@ const Appointments = () => {
         }
     };
 
+    const handleChangeStatus = async (app, newStatus) => {
+        try {
+            await updateDoctorAppointment(app.id, { status: newStatus });
+            setMessage({ type: 'success', text: `Appointment marked as ${newStatus}` });
+            fetchData(role);
+        } catch (err) {
+            setMessage({ type: 'error', text: `Failed to update status.` });
+        }
+    };
+
     const getStatusIcon = (status) => {
         switch (status) {
             case 'SCHEDULED': return <Clock size={18} className="text-primary" />;
@@ -306,7 +316,13 @@ const Appointments = () => {
                                             {role === 'RECEPTIONIST' && app.status === 'PENDING' && (
                                                 <button onClick={() => handleConfirm(app.id)} className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>Confirm</button>
                                             )}
-                                            {(role === 'DOCTOR' || role === 'RECEPTIONIST') && (
+                                            {role === 'DOCTOR' && app.status === 'SCHEDULED' && new Date(app.appointmentTime) < new Date() && (
+                                                <>
+                                                    <button onClick={() => handleChangeStatus(app, 'COMPLETED')} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderColor: 'var(--success)', color: 'var(--success)' }}>Mark Met</button>
+                                                    <button onClick={() => handleChangeStatus(app, 'EXPIRED')} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderColor: 'gray', color: 'gray' }}>Mark Expired</button>
+                                                </>
+                                            )}
+                                            {(role === 'DOCTOR' || role === 'RECEPTIONIST') && (app.status === 'SCHEDULED' || app.status === 'PENDING') && (
                                                 <>
                                                     <button onClick={() => handleEdit(app)} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}>Edit</button>
                                                     <button onClick={() => handleDelete(app.id)} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderColor: 'var(--accent)', color: 'var(--accent)' }}>Cancel</button>

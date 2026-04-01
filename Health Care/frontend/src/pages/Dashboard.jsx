@@ -274,7 +274,29 @@ const Dashboard = () => {
                                             <Activity size={20} color="var(--primary)" />
                                             Health Vitals
                                         </h3>
-                                        <button onClick={() => navigate('/profile-setup')} className="btn btn-text" style={{ fontSize: '0.8rem' }}>Update</button>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        const { downloadMyHistory } = await import('../services/api');
+                                                        const res = await downloadMyHistory();
+                                                        const url = window.URL.createObjectURL(new Blob([res.data]));
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.setAttribute('download', 'MedicalHistory.pdf');
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        link.remove();
+                                                    } catch (err) {
+                                                        console.error('Failed to download history', err);
+                                                    }
+                                                }}
+                                                className="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                                            >
+                                                Download History
+                                            </button>
+                                            <button onClick={() => navigate('/profile-setup')} className="btn btn-text" style={{ fontSize: '0.8rem' }}>Update</button>
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                                         <div style={{ flex: 1, minWidth: '100px', background: 'var(--bg-alt)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>

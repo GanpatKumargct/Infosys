@@ -50,7 +50,11 @@ export const getDoctorsList = () => api.get('/receptionist/doctors');
 export const createDoctor = (data) => api.post('/receptionist/doctors', data);
 export const updateDoctor = (id, data) => api.put(`/receptionist/doctors/${id}`, data);
 export const deleteDoctor = (id) => api.delete(`/receptionist/doctors/${id}`);
+
+export const getAllPatients = () => api.get('/receptionist/patients');
 export const registerPatient = (data) => api.post('/receptionist/patients', data);
+export const updatePatient = (id, data) => api.put(`/receptionist/patients/${id}`, data);
+export const deletePatient = (id) => api.delete(`/receptionist/patients/${id}`);
 
 // Medical Record APIs
 export const addMedicalRecord = (patientId, data) => api.post(`/records/doctor/add?patientId=${patientId}`, data);

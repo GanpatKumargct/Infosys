@@ -88,9 +88,21 @@ const HealthLogger = ({ onActivityLogged }) => {
     const handleToggleHabit = async (habitId) => {
         const today = new Date().toISOString().split('T')[0];
         const currentStatus = !!habitLogs[habitId];
+        const habit = habits.find(h => h.id === habitId);
         try {
             await logHabit(habitId, { date: today, completed: !currentStatus });
             setHabitLogs({ ...habitLogs, [habitId]: !currentStatus });
+            
+            // Auto log activity when habit is ticked mapped
+            if (!currentStatus && habit) {
+                await logActivity({
+                    type: 'WORKOUT',
+                    subType: `Habit: ${habit.name}`,
+                    value: 15, // Provide a default estimated value to show up in graphs
+                    notes: `Logged via Habit Tracker`
+                });
+                if (onActivityLogged) onActivityLogged();
+            }
         } catch (err) {
             console.error('Failed to log habit', err);
         }

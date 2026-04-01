@@ -38,9 +38,25 @@ public class ReceptionistController {
         return ResponseEntity.noContent().build();
     }
 
-    // Patient Registration
+    // Patient Management
+    @GetMapping("/patients")
+    public ResponseEntity<List<User>> getAllPatients() {
+        return ResponseEntity.ok(userService.getPatients());
+    }
+
     @PostMapping("/patients")
     public ResponseEntity<User> registerPatient(@RequestBody User patient) {
         return ResponseEntity.ok(userService.registerPatient(patient));
+    }
+
+    @PutMapping("/patients/{id}")
+    public ResponseEntity<User> updatePatient(@PathVariable Long id, @RequestBody User patient) {
+        return ResponseEntity.ok(userService.updatePatient(id, patient));
+    }
+
+    @DeleteMapping("/patients/{id}")
+    public ResponseEntity<Void> deletePatient(@PathVariable Long id) {
+        userService.deletePatient(id);
+        return ResponseEntity.noContent().build();
     }
 }

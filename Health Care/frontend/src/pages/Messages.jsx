@@ -63,8 +63,14 @@ const Messages = () => {
     const fetchContacts = async (role) => {
         setLoading(true);
         try {
-            const res = await api.get(role === 'PATIENT' ? '/users/doctors' : '/users/patients');
-            setContacts(res.data);
+            if (role === 'RECEPTIONIST' || role === 'ADMIN') {
+                const docs = await api.get('/users/doctors');
+                const pats = await api.get('/users/patients');
+                setContacts([...docs.data, ...pats.data]);
+            } else {
+                const res = await api.get(role === 'PATIENT' ? '/users/doctors' : '/users/patients');
+                setContacts(res.data);
+            }
         } catch (error) {
             console.error('Error fetching contacts', error);
         } finally {
@@ -143,7 +149,7 @@ const Messages = () => {
                     {/* Sidebar / Contacts */}
                     <div style={{ width: '300px', borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg)', overflowY: 'auto' }}>
                         <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', fontWeight: '600' }}>
-                            {userRole === 'PATIENT' ? 'Doctors' : 'Patients'}
+                            {userRole === 'PATIENT' ? 'Doctors' : userRole === 'DOCTOR' ? 'Patients' : 'All Contacts'}
                         </div>
                         {loading && <div style={{ padding: '1rem', textAlign: 'center' }}>Loading...</div>}
                         {!loading && contacts.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No contacts found</div>}
@@ -228,10 +234,10 @@ const Messages = () => {
                                                         boxShadow: 'var(--shadow-sm)',
                                                         wordBreak: 'break-word',
                                                     }}>
-                                                        <div style={{ marginBottom: '0.25rem' }}>{msg.content}</div>
-                                                        <div style={{ fontSize: '0.7rem', opacity: 0.7, textAlign: 'right' }}>
-                                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        <div style={{ fontSize: '0.7rem', opacity: 0.8, textAlign: isMe ? 'right' : 'left', marginBottom: '0.3rem' }}>
+                                                            {new Date(msg.timestamp).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                         </div>
+                                                        <div style={{ marginBottom: '0.25rem' }}>{msg.content}</div>
                                                     </div>
                                                 </div>
                                             );

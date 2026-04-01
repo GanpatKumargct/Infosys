@@ -93,6 +93,21 @@ public class UserService {
         return userRepository.save(patient);
     }
 
+    public User updatePatient(Long id, User patientDetails) {
+        User patient = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        patient.setFullName(patientDetails.getFullName());
+        patient.setEmail(patientDetails.getEmail());
+        if (patientDetails.getPassword() != null && !patientDetails.getPassword().isEmpty()) {
+            patient.setPassword(passwordEncoder.encode(patientDetails.getPassword()));
+        }
+        return userRepository.save(patient);
+    }
+
+    public void deletePatient(Long id) {
+        userRepository.deleteById(id);
+    }
+
     public List<User> getDoctors() {
         return userRepository.findByRole(Role.DOCTOR);
     }
