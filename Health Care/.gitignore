@@ -1,0 +1,23 @@
+# ─── Frontend ───
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# ─── Backend ───
+backend/target/
+backend/.mvn/
+*.class
+*.jar
+*.war
+
+# ─── IDE ───
+.idea/
+.vscode/settings.json
+*.iml
+*.iws
+*.ipr
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
